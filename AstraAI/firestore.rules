@@ -1,0 +1,135 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: brands
+    // Fields:
+    //   - uid: string (required) - Owner user ID
+    //   - name: string (required)
+    //   - website: string
+    //   - industry: string (required)
+    //   - tagline: string
+    //   - description: string
+    //   - colors: list
+    //   - tone: string (required)
+    //   - audience: list
+    //   - values: list
+    //
+    // Collection: posts
+    // Fields:
+    //   - uid: string (required) - Owner user ID
+    //   - platform: string (required) - X, Discord, Telegram
+    //   - content: string (required)
+    //   - title: string
+    //   - imageUrl: string
+    //   - status: string (required) - draft, pending, approved, scheduled, posted, failed
+    //   - score: number
+    //   - feedback: string
+    //   - createdAt: string (format: date-time)
+    //   - scheduledAt: string (format: date-time)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "harshsahu0907@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidBrand(data) {
+      return data.uid is string &&
+             data.name is string && data.name.size() < 100 &&
+             data.industry is string &&
+             data.tone is string &&
+             (!('description' in data) || data.description.size() < 2000);
+    }
+
+    function isValidPost(data) {
+      return data.uid is string &&
+             data.platform in ['X', 'Instagram', 'YouTube', 'Telegram', 'Discord', 'Facebook', 'Pinterest'] &&
+             data.content is string && data.content.size() < 10000 &&
+             data.status in ['draft', 'pending', 'approved', 'scheduled', 'posted', 'failed'] &&
+             (!('score' in data) || data.score is number) &&
+             (!('campaignId' in data) || data.campaignId is string) &&
+             (!('mediaType' in data) || data.mediaType in ['text', 'image', 'video']) &&
+             (!('imageUrl' in data) || data.imageUrl is string) &&
+             (!('videoUrl' in data) || data.videoUrl is string) &&
+             (!('createdAt' in data) || data.createdAt is string) &&
+             (!('scheduledAt' in data) || data.scheduledAt is string);
+    }
+
+    function isValidCampaign(data) {
+      return data.uid is string &&
+             data.title is string && data.title.size() < 200 &&
+             data.brief is string && data.brief.size() < 2000 &&
+             data.status in ['active', 'completed', 'archived'] &&
+             data.autoApproval is bool;
+    }
+
+    function isValidSocialConnection(data) {
+      return data.uid is string &&
+             data.platform in ['X', 'Instagram', 'YouTube', 'Telegram', 'Discord', 'Facebook'] &&
+             data.accessToken is string &&
+             (!('expiresAt' in data) || data.expiresAt is number);
+    }
+
+    // Rules
+    match /brands/{brandId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && uidUnchanged() && isValidBrand(request.resource.data);
+      allow update: if isDocOwner() && uidUnchanged() && isValidBrand(request.resource.data);
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /posts/{postId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && uidUnchanged() && isValidPost(request.resource.data);
+      allow update: if (isDocOwner() || isAdmin()) && uidUnchanged() && isValidPost(request.resource.data);
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /campaigns/{campaignId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && uidUnchanged() && isValidCampaign(request.resource.data);
+      allow update: if isDocOwner() && uidUnchanged() && isValidCampaign(request.resource.data);
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /social_connections/{connectionId} {
+      allow read, delete: if isDocOwner() || isAdmin();
+      allow create, update: if isDocOwner() && isValidSocialConnection(request.resource.data);
+    }
+
+    match /performance/{performanceId} {
+      allow read: if isAuthenticated() && (isAdmin() || get(/databases/$(database)/documents/posts/$(resource.data.postId)).data.uid == request.auth.uid);
+      allow write: if isAdmin(); // Only server/admin should write analytics
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isAdmin();
+    }
+  }
+}

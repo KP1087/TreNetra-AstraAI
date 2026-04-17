@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "BrandProfile": {
+      "title": "BrandProfile",
+      "description": "Information about a user's brand.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner userId" },
+        "name": { "type": "string" },
+        "website": { "type": "string" },
+        "industry": { "type": "string" },
+        "tagline": { "type": "string" },
+        "description": { "type": "string" },
+        "colors": { "type": "array", "items": { "type": "string" } },
+        "tone": { "type": "string" },
+        "audience": { "type": "array", "items": { "type": "string" } },
+        "values": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["uid", "name", "industry"]
+    },
+    "MarketingPost": {
+      "title": "MarketingPost",
+      "description": "A generated marketing content piece.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Owner userId" },
+        "campaignId": { "type": "string" },
+        "platform": { "type": "string", "enum": ["X", "Discord", "Telegram", "Instagram", "YouTube"] },
+        "content": { "type": "string" },
+        "title": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "aspectRatio": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "pending", "approved", "scheduled", "posted", "failed"] },
+        "score": { "type": "number" },
+        "feedback": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "scheduledAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "platform", "content", "status", "createdAt"]
+    },
+    "Campaign": {
+      "title": "Campaign",
+      "description": "A marketing campaign grouping multiple posts.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "brief": { "type": "string" },
+        "targetAudience": { "type": "string" },
+        "aspectRatio": { "type": "string" },
+        "type": { "type": "string" },
+        "aesthetic": { "type": "string" },
+        "rules": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "completed", "archived"] },
+        "autoApproval": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title", "brief", "status", "createdAt"]
+    },
+    "SocialConnection": {
+      "title": "SocialConnection",
+      "description": "Credentials and metadata for a linked social media account.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User ID" },
+        "platform": { "type": "string", "enum": ["X", "Instagram", "YouTube", "Telegram", "Discord", "Facebook"] },
+        "username": { "type": "string" },
+        "accessToken": { "type": "string" },
+        "refreshToken": { "type": "string" },
+        "expiresAt": { "type": "number", "description": "Unix timestamp" },
+        "externalId": { "type": "string", "description": "Platform-specific user/page ID" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["uid", "platform", "accessToken"]
+    },
+    "PostPerformance": {
+      "title": "PostPerformance",
+      "description": "Analytics tracking for a specific post.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "views": { "type": "number" },
+        "likes": { "type": "number" },
+        "shares": { "type": "number" },
+        "comments": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "lastUpdated"]
+    }
+  },
+  "firestore": {
+    "brands/{brandId}": {
+      "schema": "BrandProfile",
+      "description": "User brand profiles"
+    },
+    "posts/{postId}": {
+      "schema": "MarketingPost",
+      "description": "Generated marketing content"
+    },
+    "campaigns/{campaignId}": {
+      "schema": "Campaign",
+      "description": "Marketing campaigns"
+    },
+    "social_connections/{connectionId}": {
+      "schema": "SocialConnection",
+      "description": "Linked social media accounts"
+    },
+    "performance/{metricId}": {
+      "schema": "PostPerformance",
+      "description": "Post-level analytics tracking"
+    }
+  }
+}
